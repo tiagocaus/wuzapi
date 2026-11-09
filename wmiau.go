@@ -668,7 +668,11 @@ func (s *server) startClient(userID string, textjid string, token string, kill c
 
 			myuserinfo, found := userinfocache.Get(token)
 
-			for evt := range qrChan {
+			for {
+				evt, ok := nextSessionQREvent(ctx, qrChan)
+				if !ok {
+					break
+				}
 				if evt.Event == "code" {
 					// Display QR code in terminal (useful for testing/developing)
 					// Skip in stdio mode to avoid breaking JSON-RPC

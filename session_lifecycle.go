@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"go.mau.fi/whatsmeow"
 )
 
 // Guarded by proxyPoolMu, like session start reservations.
@@ -150,5 +151,19 @@ func waitForSessionStop(ctx context.Context, userID string) error {
 			return ctx.Err()
 		case <-ticker.C:
 		}
+	}
+}
+
+// nextSessionQREvent also observes session cancellation: an expected disconnect
+// can stop whatsmeow's QR emitter without closing its output channel.
+func nextSessionQREvent(ctx context.Context, events <-chan whatsmeow.QRChannelItem) (whatsmeow.QRChannelItem, bool) {
+	if ctx.Err() != nil {
+		return whatsmeow.QRChannelItem{}, false
+	}
+	select {
+	case <-ctx.Done():
+		return whatsmeow.QRChannelItem{}, false
+	case evt, ok := <-events:
+		return evt, ok
 	}
 }
